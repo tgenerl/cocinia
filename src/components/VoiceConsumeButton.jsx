@@ -4,10 +4,40 @@ import Modal from "./Modal";
 import { useStore } from "../store/useStore";
 import { parseConsumptionPhrase } from "../lib/voiceConsumption";
 
+let cachedVoices = [];
+function loadVoices() {
+  cachedVoices = window.speechSynthesis.getVoices();
+  return cachedVoices;
+}
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+// Elige la voz española más natural disponible (prioriza es-ES, voces de red y motores de calidad)
+function pickSpanishVoice() {
+  const voices = cachedVoices.length ? cachedVoices : loadVoices();
+  const esVoices = voices.filter((v) => v.lang?.toLowerCase().startsWith("es"));
+  if (!esVoices.length) return null;
+  const score = (v) => {
+    let s = 0;
+    if (v.lang?.toLowerCase() === "es-es") s += 3;
+    if (!v.localService) s += 2;
+    if (/google|microsoft|natural|premium|online/i.test(v.name)) s += 2;
+    return s;
+  };
+  return [...esVoices].sort((a, b) => score(b) - score(a))[0];
+}
+
 function speak(message) {
   if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(message);
-  utterance.lang = "es-ES";
+  const voice = pickSpanishVoice();
+  utterance.lang = voice?.lang || "es-ES";
+  if (voice) utterance.voice = voice;
+  utterance.rate = 1;
+  utterance.pitch = 1;
   window.speechSynthesis.speak(utterance);
 }
 
