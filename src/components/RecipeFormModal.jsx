@@ -3,7 +3,8 @@ import { Camera, PencilLine, Plus, Trash2, Check, Loader2 } from "lucide-react";
 import Modal from "./Modal";
 import CameraCapture from "./CameraCapture";
 import { useStore } from "../store/useStore";
-import { PRODUCT_CATALOG, HANDWRITTEN_RECIPE_SAMPLE } from "../data/dummyData";
+import { PRODUCT_CATALOG } from "../data/dummyData";
+import { recognizePhoto } from "../lib/aiRecognition";
 
 const TABS = [
   { id: "manual", label: "Manual", icon: PencilLine },
@@ -80,30 +81,42 @@ export default function RecipeFormModal({ open, onClose }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoAnalyzing, setPhotoAnalyzing] = useState(false);
 
-  function capturePhoto(file, url) {
+  async function capturePhoto(file, url) {
     setPhotoUrl(url);
     setPhotoAnalyzing(true);
-    setTimeout(() => {
-      const r = HANDWRITTEN_RECIPE_SAMPLE;
-      setName(r.name);
-      setType(r.type);
-      setTime(String(r.time));
-      setBaseServings(String(r.baseServings));
-      setTags(r.tags.join(", "));
+    try {
+      const r = await recognizePhoto("recipe", file);
+      setName(r.name || "");
+      setType("normal");
+      setTime(String(r.time || 30));
+      setBaseServings(String(r.baseServings || 4));
+      setTags((r.tags || []).join(", "));
       setIngredients(
-        r.ingredients.map((ing) => ({
-          name: ing.name,
-          productId: ing.productId || "",
-          quantity: String(ing.quantity),
-          unit: ing.unit,
-        }))
+        (r.ingredients || []).map((ing) => {
+          const match = PRODUCT_CATALOG.find((p) => p.name === ing.name);
+          return {
+            name: ing.name,
+            productId: match?.id || "",
+            quantity: String(ing.quantity ?? ""),
+            unit: ing.unit || "",
+          };
+        })
       );
-      setSteps(r.steps.map((s) => ({ text: s.text })));
+      setSteps((r.steps && r.steps.length ? r.steps : [{ text: "" }]).map((s) => ({ text: s.text })));
+      pushToast(
+        r.simulated
+          ? "No se pudo conectar con el modelo de IA; mostrando una receta de muestra para editar"
+          : "Receta reconocida: revisa y edita antes de guardar",
+        "info"
+      );
+      setTab("manual");
+    } catch (err) {
+      pushToast("No se pudo leer la foto de la receta. Inténtalo de nuevo.", "error");
+      setPhotoUrl(null);
+    } finally {
       setPhotoAnalyzing(false);
       setPhotoUrl(null);
-      pushToast("Receta reconocida: revisa y edita antes de guardar", "info");
-      setTab("manual");
-    }, 1200);
+    }
   }
 
   function retakePhoto() {

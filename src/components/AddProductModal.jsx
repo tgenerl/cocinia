@@ -3,14 +3,9 @@ import { Receipt, Camera, ScanBarcode, Plus, Check, Trash2, Loader2 } from "luci
 import Modal from "./Modal";
 import CameraCapture from "./CameraCapture";
 import { useStore } from "../store/useStore";
-import {
-  TICKET_SAMPLES,
-  FRIDGE_PHOTO_SAMPLE,
-  BARCODE_DB,
-  PRODUCT_CATALOG,
-  CATALOG_BY_ID,
-} from "../data/dummyData";
+import { BARCODE_DB, PRODUCT_CATALOG, CATALOG_BY_ID } from "../data/dummyData";
 import { addDays, todayISO } from "../utils/helpers";
+import { recognizePhoto } from "../lib/aiRecognition";
 
 function locationForCategory(category) {
   if (category === "Congelados") return "congelador";
@@ -19,7 +14,19 @@ function locationForCategory(category) {
 }
 
 function emptyLine() {
-  return { matchId: "", quantity: "", unit: "" };
+  return { matchId: "", name: "", quantity: "", unit: "" };
+}
+
+function linesFromRecognition(items) {
+  return items.map((it) => {
+    const match = PRODUCT_CATALOG.find((p) => p.name === it.catalogName);
+    return {
+      matchId: match?.id || "",
+      name: it.catalogName || it.rawName || "",
+      quantity: it.quantity ?? "",
+      unit: it.unit || match?.unit || "",
+    };
+  });
 }
 
 const TABS = [
@@ -41,16 +48,23 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
   const [ticketStore, setTicketStore] = useState(null);
   const [ticketLines, setTicketLines] = useState(null);
 
-  function captureTicketPhoto(file, url) {
+  async function captureTicketPhoto(file, url) {
     setTicketPhotoUrl(url);
     setTicketAnalyzing(true);
     setTicketLines(null);
-    setTimeout(() => {
-      const sample = TICKET_SAMPLES[Math.floor(Math.random() * TICKET_SAMPLES.length)];
-      setTicketStore(sample.store);
-      setTicketLines(sample.rawLines.map((l) => ({ matchId: l.matchId, quantity: l.quantity, unit: l.unit })));
+    try {
+      const result = await recognizePhoto("ticket", file);
+      setTicketStore(result.store || "tu tique");
+      setTicketLines(linesFromRecognition(result.items || []));
+      if (result.simulated) {
+        pushToast("No se pudo conectar con el modelo de IA; mostrando un tique de muestra", "info");
+      }
+    } catch (err) {
+      pushToast("No se pudo analizar la foto del tique. Inténtalo de nuevo.", "error");
+      setTicketPhotoUrl(null);
+    } finally {
       setTicketAnalyzing(false);
-    }, 1200);
+    }
   }
 
   function retakeTicketPhoto() {
@@ -83,21 +97,27 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
   const [fridgeAnalyzing, setFridgeAnalyzing] = useState(false);
   const [fridgeLines, setFridgeLines] = useState(null);
 
-  function captureFridgePhoto(file, url) {
+  async function captureFridgePhoto(file, url) {
     setFridgePhotoUrl(url);
     setFridgeAnalyzing(true);
     setFridgeLines(null);
-    setTimeout(() => {
+    try {
+      const result = await recognizePhoto("fridge", file);
       setFridgeLines(
-        FRIDGE_PHOTO_SAMPLE.map((item) => ({
-          matchId: item.matchId,
-          quantity: item.quantity,
-          unit: item.unit,
-          location: locationForCategory(CATALOG_BY_ID[item.matchId].category),
+        linesFromRecognition(result.items || []).map((line) => ({
+          ...line,
+          location: locationForCategory(CATALOG_BY_ID[line.matchId]?.category),
         }))
       );
+      if (result.simulated) {
+        pushToast("No se pudo conectar con el modelo de IA; mostrando productos de muestra", "info");
+      }
+    } catch (err) {
+      pushToast("No se pudo analizar la foto. Inténtalo de nuevo.", "error");
+      setFridgePhotoUrl(null);
+    } finally {
       setFridgeAnalyzing(false);
-    }, 1200);
+    }
   }
 
   function retakeFridgePhoto() {
@@ -369,10 +389,10 @@ function LineEditor({ line, onChange, onRemove, showLocation = false }) {
         list="line-catalog-list"
         className="input min-w-[9rem] flex-1"
         placeholder="Producto"
-        defaultValue={current?.name || ""}
+        defaultValue={current?.name || line.name || ""}
         onChange={(e) => {
           const match = PRODUCT_CATALOG.find((p) => p.name === e.target.value);
-          onChange({ matchId: match?.id || "" });
+          onChange({ matchId: match?.id || "", name: e.target.value });
         }}
       />
       <input
