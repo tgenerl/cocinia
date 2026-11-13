@@ -145,27 +145,33 @@ export default async function handler(req, res) {
   }
   const safeMimeType = typeof mimeType === "string" && mimeType.startsWith("image/") ? mimeType : "image/jpeg";
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+  const requestBody = JSON.stringify({
+    contents: [
       {
+        role: "user",
+        parts: [{ text: promptFor(kind) }, { inlineData: { mimeType: safeMimeType, data: image } }],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: SCHEMAS[kind],
+      temperature: 0.2,
+    },
+  });
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+  try {
+    // Gemini a veces devuelve 503 "high demand" de forma puntual: un par de reintentos cortos lo resuelve.
+    let response;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      response = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: promptFor(kind) }, { inlineData: { mimeType: safeMimeType, data: image } }],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: SCHEMAS[kind],
-            temperature: 0.2,
-          },
-        }),
-      }
-    );
+        body: requestBody,
+      });
+      if (response.ok || ![429, 503].includes(response.status)) break;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    }
 
     if (!response.ok) {
       const errText = await response.text();
