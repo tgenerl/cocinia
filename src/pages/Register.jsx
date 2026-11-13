@@ -62,7 +62,7 @@ export default function Register() {
             <label className="mb-1 block text-sm font-medium text-stone-600">Tu nombre</label>
             <div className="relative">
               <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-              <input required value={name} onChange={(e) => setName(e.target.value)} className="input pl-9" placeholder="Ana" />
+              <input required value={name} onChange={(e) => setName(e.target.value)} className="input pl-9" />
             </div>
           </div>
 
@@ -76,7 +76,6 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input pl-9"
-                placeholder="tu@email.com"
               />
             </div>
           </div>
@@ -92,7 +91,6 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input pl-9"
-                placeholder="••••••••"
               />
             </div>
           </div>
@@ -106,7 +104,6 @@ export default function Register() {
                   value={householdName}
                   onChange={(e) => setHouseholdName(e.target.value)}
                   className="input pl-9"
-                  placeholder="Familia García"
                 />
               </div>
             </div>
@@ -120,7 +117,6 @@ export default function Register() {
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   className="input pl-9 uppercase tracking-widest"
-                  placeholder="FAM247"
                 />
               </div>
               <p className="mt-1 text-xs text-stone-400">Pídeselo a quien ya tenga la despensa de tu familia en CocinIA.</p>
