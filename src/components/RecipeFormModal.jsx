@@ -105,9 +105,9 @@ export default function RecipeFormModal({ open, onClose }) {
       setSteps((r.steps && r.steps.length ? r.steps : [{ text: "" }]).map((s) => ({ text: s.text })));
       pushToast(
         r.simulated
-          ? "No se pudo conectar con el modelo de IA; mostrando una receta de muestra para editar"
+          ? `⚠️ IA real no disponible (${r.errorMessage || "error desconocido"}). Esto es una receta de EJEMPLO, no la tuya.`
           : "Receta reconocida: revisa y edita antes de guardar",
-        "info"
+        r.simulated ? "error" : "info"
       );
       setTab("manual");
     } catch (err) {

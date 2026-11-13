@@ -57,7 +57,10 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
       setTicketStore(result.store || "tu tique");
       setTicketLines(linesFromRecognition(result.items || []));
       if (result.simulated) {
-        pushToast("No se pudo conectar con el modelo de IA; mostrando un tique de muestra", "info");
+        pushToast(
+          `⚠️ IA real no disponible (${result.errorMessage || "error desconocido"}). Esto es un tique de EJEMPLO, no el tuyo.`,
+          "error"
+        );
       }
     } catch (err) {
       pushToast("No se pudo analizar la foto del tique. Inténtalo de nuevo.", "error");
@@ -110,7 +113,10 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
         }))
       );
       if (result.simulated) {
-        pushToast("No se pudo conectar con el modelo de IA; mostrando productos de muestra", "info");
+        pushToast(
+          `⚠️ IA real no disponible (${result.errorMessage || "error desconocido"}). Esto son productos de EJEMPLO, no los tuyos.`,
+          "error"
+        );
       }
     } catch (err) {
       pushToast("No se pudo analizar la foto. Inténtalo de nuevo.", "error");

@@ -1,5 +1,5 @@
 // Comprime una foto (File/Blob) a JPEG redimensionado para enviarla a la API de reconocimiento.
-export function compressImageFile(file, { maxDim = 1280, quality = 0.82 } = {}) {
+export function compressImageFile(file, { maxDim = 1600, quality = 0.88 } = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(reader.error);

@@ -48,11 +48,14 @@ export async function recognizePhoto(kind, file) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind, image: base64, mimeType }),
     });
-    if (!res.ok) throw new Error(`API respondió ${res.status}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error || `API respondió ${res.status}`);
+    }
     const data = await res.json();
     return { ...data, simulated: false };
   } catch (err) {
     console.warn("Reconocimiento con IA real no disponible, usando datos de muestra:", err);
-    return FALLBACKS[kind]();
+    return { ...FALLBACKS[kind](), errorMessage: err.message };
   }
 }
