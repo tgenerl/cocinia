@@ -280,9 +280,20 @@ export const useStore = create(
 
       // ---------- RECETAS ----------
       importedRecipes: [],
+      deletedRecipeIds: [],
       favoriteRecipeIds: [],
 
-      getAllRecipes: () => [...RECIPES, ...get().importedRecipes],
+      getAllRecipes: () => {
+        const { deletedRecipeIds } = get();
+        return [...RECIPES, ...get().importedRecipes].filter((r) => !deletedRecipeIds.includes(r.id));
+      },
+
+      removeRecipe: (recipeId) =>
+        set((state) => ({
+          deletedRecipeIds: [...state.deletedRecipeIds, recipeId],
+          importedRecipes: state.importedRecipes.filter((r) => r.id !== recipeId),
+          favoriteRecipeIds: state.favoriteRecipeIds.filter((id) => id !== recipeId),
+        })),
 
       importRecipeFromLink: (url) => {
         const { importedRecipes } = get();

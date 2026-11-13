@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Clock, Star, Heart, Zap } from "lucide-react";
+import { Clock, Star, Heart, Zap, Trash2 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { classNames } from "../utils/helpers";
 
@@ -7,6 +7,8 @@ export default function RecipeCard({ recipe }) {
   const navigate = useNavigate();
   const favoriteRecipeIds = useStore((s) => s.favoriteRecipeIds);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
+  const removeRecipe = useStore((s) => s.removeRecipe);
+  const pushToast = useStore((s) => s.pushToast);
   const timesCookedOverrides = useStore((s) => s.timesCookedOverrides);
   const isFavorite = favoriteRecipeIds.includes(recipe.id);
   const timesCooked = (recipe.timesCooked || 0) + (timesCookedOverrides[recipe.id] || 0);
@@ -26,6 +28,17 @@ export default function RecipeCard({ recipe }) {
           className="absolute right-2 top-2 rounded-full bg-white/90 p-1.5 shadow-sm"
         >
           <Heart size={16} className={isFavorite ? "fill-red-500 text-red-500" : "text-stone-400"} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            removeRecipe(recipe.id);
+            pushToast(`"${recipe.name}" eliminada`, "info");
+          }}
+          className="absolute right-10 top-2 rounded-full bg-white/90 p-1.5 text-stone-400 shadow-sm hover:text-red-500"
+          title="Eliminar receta"
+        >
+          <Trash2 size={16} />
         </button>
         {recipe.type === "thermomix" && (
           <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-sage-600 px-2 py-0.5 text-[10px] font-bold text-white">

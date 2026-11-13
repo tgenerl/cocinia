@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Clock, Zap, Minus, Plus, Users, ShoppingCart, Check, ChefHat, ArrowRight } from "lucide-react";
+import { Clock, Zap, Minus, Plus, Users, ShoppingCart, Check, ChefHat, ArrowRight, Trash2 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { formatQuantity, scaleQuantity } from "../utils/helpers";
 import Modal from "../components/Modal";
@@ -16,6 +16,7 @@ export default function RecipeDetail() {
   const cookRecipe = useStore((s) => s.cookRecipe);
   const pushToast = useStore((s) => s.pushToast);
   const toggleFavorite = useStore((s) => s.toggleFavorite);
+  const removeRecipe = useStore((s) => s.removeRecipe);
   const favoriteRecipeIds = useStore((s) => s.favoriteRecipeIds);
 
   const recipe = getAllRecipes().find((r) => r.id === id);
@@ -97,12 +98,25 @@ export default function RecipeDetail() {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => toggleFavorite(recipe.id)}
-            className="rounded-full bg-stone-100 p-2 text-stone-500 hover:bg-stone-200"
-          >
-            {isFavorite ? "❤️" : "🤍"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => toggleFavorite(recipe.id)}
+              className="rounded-full bg-stone-100 p-2 text-stone-500 hover:bg-stone-200"
+            >
+              {isFavorite ? "❤️" : "🤍"}
+            </button>
+            <button
+              onClick={() => {
+                removeRecipe(recipe.id);
+                pushToast(`"${recipe.name}" eliminada`, "info");
+                navigate("/recetas");
+              }}
+              className="rounded-full bg-stone-100 p-2 text-stone-500 hover:bg-red-100 hover:text-red-600"
+              title="Eliminar receta"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5">

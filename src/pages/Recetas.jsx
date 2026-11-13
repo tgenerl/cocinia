@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Zap, Link2, Heart, History, Loader2, Plus } from "lucide-react";
+import { Zap, Link2, Heart, History, Loader2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import RecipeCard from "../components/RecipeCard";
@@ -102,9 +102,8 @@ export default function Recetas() {
           ))}
         </div>
         {tab !== "historial" && (
-          <div className="relative max-w-xs flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar receta…" className="input pl-9" />
+          <div className="max-w-xs flex-1">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar receta…" className="input" />
           </div>
         )}
       </div>
