@@ -1,6 +1,6 @@
 // Función serverless de Vercel: reconocimiento de fotos (tique, nevera/despensa, receta) con Google Gemini.
 // Requiere la variable de entorno GEMINI_API_KEY configurada en el proyecto de Vercel.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 // Debe coincidir con los nombres de PRODUCT_CATALOG en src/data/dummyData.js
 const CATALOG_NAMES = [
