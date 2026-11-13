@@ -124,6 +124,11 @@ export default function VoiceConsumeButton() {
           {feedback.message}
         </p>
       )}
+      {!feedback && !listening && (
+        <p className="max-w-[200px] rounded-lg bg-white p-2 text-xs text-stone-500 shadow-card">
+          Toca y di lo que te has comido, p. ej. "me he comido un plátano"
+        </p>
+      )}
       <button
         onClick={handleMicClick}
         className={`flex h-14 w-14 items-center justify-center rounded-full text-white shadow-card transition ${
