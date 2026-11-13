@@ -9,8 +9,8 @@ export default function Login() {
   const loginDemo = useStore((s) => s.loginDemo);
   const authError = useStore((s) => s.authError);
   const clearAuthError = useStore((s) => s.clearAuthError);
-  const [email, setEmail] = useState("demo@cocinia.app");
-  const [password, setPassword] = useState("cocinia123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -35,7 +35,7 @@ export default function Login() {
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Email</label>
             <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              {!email && <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
               <input
                 type="email"
                 required
@@ -49,7 +49,7 @@ export default function Login() {
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Contraseña</label>
             <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              {!password && <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
               <input
                 type="password"
                 required

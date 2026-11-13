@@ -61,7 +61,7 @@ export default function Register() {
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Tu nombre</label>
             <div className="relative">
-              <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              {!name && <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
               <input required value={name} onChange={(e) => setName(e.target.value)} className="input pl-9" />
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function Register() {
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Email</label>
             <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              {!email && <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
               <input
                 type="email"
                 required
@@ -83,7 +83,7 @@ export default function Register() {
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Contraseña</label>
             <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              {!password && <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
               <input
                 type="password"
                 required
@@ -99,7 +99,7 @@ export default function Register() {
             <div>
               <label className="mb-1 block text-sm font-medium text-stone-600">Nombre de tu hogar</label>
               <div className="relative">
-                <Home size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                {!householdName && <Home size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
                 <input
                   value={householdName}
                   onChange={(e) => setHouseholdName(e.target.value)}
@@ -111,7 +111,7 @@ export default function Register() {
             <div>
               <label className="mb-1 block text-sm font-medium text-stone-600">Código de invitación</label>
               <div className="relative">
-                <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                {!inviteCode && <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />}
                 <input
                   required
                   value={inviteCode}
