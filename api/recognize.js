@@ -42,24 +42,23 @@ const ITEM_SCHEMA = {
     rawName: { type: "STRING", description: "Nombre del producto tal y como aparece o se ve en la imagen" },
     catalogName: {
       type: "STRING",
-      nullable: true,
       description:
-        "Uno de los nombres EXACTOS de la lista de catálogo si corresponde claramente, o null si no hay coincidencia clara",
+        "Uno de los nombres EXACTOS de la lista de catálogo si corresponde claramente, o cadena vacía \"\" si no hay coincidencia clara",
     },
     quantity: { type: "NUMBER" },
     unit: { type: "STRING", description: "Unidad: g, kg, ml, l o ud" },
   },
-  required: ["rawName", "quantity", "unit"],
+  required: ["rawName", "catalogName", "quantity", "unit"],
 };
 
 const SCHEMAS = {
   ticket: {
     type: "OBJECT",
     properties: {
-      store: { type: "STRING", nullable: true },
+      store: { type: "STRING" },
       items: { type: "ARRAY", items: ITEM_SCHEMA },
     },
-    required: ["items"],
+    required: ["store", "items"],
   },
   fridge: {
     type: "OBJECT",
@@ -105,13 +104,13 @@ function promptFor(kind) {
   const catalogList = CATALOG_NAMES.map((n) => `- ${n}`).join("\n");
   if (kind === "ticket") {
     return `Eres un experto leyendo tiques de compra de supermercados españoles. Analiza la imagen del tique y extrae cada línea de producto comprado.
-Para cada producto, si corresponde claramente a uno de estos nombres de catálogo, usa ese nombre EXACTO en "catalogName" (si no hay coincidencia clara, pon null):
+Para cada producto, si corresponde claramente a uno de estos nombres de catálogo, usa ese nombre EXACTO en "catalogName" (si no hay coincidencia clara, usa una cadena vacía ""):
 ${catalogList}
-Ignora totales, descuentos, IVA, puntos y líneas que no sean productos. Estima la cantidad y la unidad (g, kg, ml, l o ud) a partir del propio tique. Responde solo con el JSON pedido, en español.`;
+Ignora totales, descuentos, IVA, puntos y líneas que no sean productos. Estima la cantidad y la unidad (g, kg, ml, l o ud) a partir del propio tique. Si no identificas el nombre de la tienda, usa una cadena vacía "" en "store". Responde solo con el JSON pedido, en español.`;
   }
   if (kind === "fridge") {
     return `Eres un experto en visión por ordenador para reconocer alimentos. Analiza esta foto de una nevera, congelador o despensa y lista cada alimento o producto distinto que veas, con una estimación razonable de la cantidad visible.
-Para cada producto, si corresponde claramente a uno de estos nombres de catálogo, usa ese nombre EXACTO en "catalogName" (si no hay coincidencia clara, pon null):
+Para cada producto, si corresponde claramente a uno de estos nombres de catálogo, usa ese nombre EXACTO en "catalogName" (si no hay coincidencia clara, usa una cadena vacía ""):
 ${catalogList}
 Responde solo con el JSON pedido, en español.`;
   }
@@ -171,17 +170,30 @@ export default async function handler(req, res) {
     if (!response.ok) {
       const errText = await response.text();
       console.error("Gemini API error:", response.status, errText);
-      res.status(502).json({ error: "El modelo de IA no pudo procesar la imagen" });
+      let detail = errText;
+      try {
+        detail = JSON.parse(errText)?.error?.message || errText;
+      } catch {
+        // errText no era JSON, se usa tal cual
+      }
+      res.status(502).json({ error: `Gemini ${response.status}: ${String(detail).slice(0, 200)}` });
       return;
     }
 
     const data = await response.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const finishReason = data?.candidates?.[0]?.finishReason;
     if (!text) {
-      res.status(502).json({ error: "El modelo de IA no devolvió resultado" });
+      console.error("Gemini sin texto. finishReason:", finishReason, JSON.stringify(data).slice(0, 500));
+      res.status(502).json({ error: `El modelo no devolvió resultado (finishReason: ${finishReason || "desconocido"})` });
       return;
     }
-    res.status(200).json(JSON.parse(text));
+    try {
+      res.status(200).json(JSON.parse(text));
+    } catch {
+      console.error("Gemini devolvió JSON inválido:", text.slice(0, 500));
+      res.status(502).json({ error: "El modelo devolvió un JSON inválido" });
+    }
   } catch (err) {
     console.error("Error llamando a Gemini:", err);
     res.status(500).json({ error: "Error interno al analizar la imagen" });
