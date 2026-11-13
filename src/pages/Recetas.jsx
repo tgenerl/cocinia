@@ -5,6 +5,8 @@ import { useStore } from "../store/useStore";
 import RecipeCard from "../components/RecipeCard";
 import StarRating from "../components/StarRating";
 import RecipeFormModal from "../components/RecipeFormModal";
+import { importRecipeFromUrl } from "../lib/recipeImport";
+import { PRODUCT_CATALOG } from "../data/dummyData";
 import { classNames } from "../utils/helpers";
 
 const TABS = [
@@ -20,7 +22,7 @@ export default function Recetas() {
   const getAllRecipes = useStore((s) => s.getAllRecipes);
   const favoriteRecipeIds = useStore((s) => s.favoriteRecipeIds);
   const cookingHistory = useStore((s) => s.cookingHistory);
-  const importRecipeFromLink = useStore((s) => s.importRecipeFromLink);
+  const addCustomRecipe = useStore((s) => s.addCustomRecipe);
   const rateHistoryEntry = useStore((s) => s.rateHistoryEntry);
   const pushToast = useStore((s) => s.pushToast);
 
@@ -43,19 +45,41 @@ export default function Recetas() {
       .filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
   }, [allRecipes, tab, search, favoriteRecipeIds]);
 
-  function handleImport() {
+  async function handleImport() {
     if (!importUrl.trim()) return;
     setImporting(true);
-    setTimeout(() => {
-      const recipe = importRecipeFromLink(importUrl);
-      setImporting(false);
+    try {
+      const data = await importRecipeFromUrl(importUrl.trim());
+      const matchedIngredients = (data.ingredients || []).map((ing) => {
+        const match = PRODUCT_CATALOG.find((p) => p.name.toLowerCase() === ing.name.trim().toLowerCase());
+        return {
+          productId: match?.id,
+          name: ing.name.trim(),
+          quantity: ing.quantity,
+          unit: ing.unit,
+          emoji: match?.emoji,
+        };
+      });
+      const recipe = addCustomRecipe({
+        name: data.name || "Receta importada",
+        type: data.isThermomix ? "thermomix" : "normal",
+        emoji: data.isThermomix ? "🍽️" : "🍳",
+        time: data.time || 30,
+        difficulty: data.difficulty || "Media",
+        tags: data.tags || [],
+        baseServings: data.baseServings || 4,
+        ingredients: matchedIngredients,
+        steps: data.steps || [],
+        source: "import",
+        importedFrom: importUrl.trim(),
+      });
+      pushToast(`"${recipe.name}" importada del enlace`, "success");
       setImportUrl("");
-      if (recipe) {
-        pushToast(`"${recipe.name}" importada de Cookidoo`, "success");
-      } else {
-        pushToast("Ya has importado todas las recetas de demostración disponibles", "info");
-      }
-    }, 900);
+    } catch (err) {
+      pushToast(`No se pudo importar la receta (${err.message})`, "error");
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (

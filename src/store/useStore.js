@@ -12,59 +12,6 @@ import { addDays, daysUntil, generateInviteCode, scaleQuantity, todayISO, uid } 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const MEALS = ["comida", "cena"];
 
-// Recetas extra "en Cookidoo" listas para simular una importación por enlace
-const IMPORTABLE_POOL = [
-  {
-    id: "r-import-lentejas",
-    name: "Lentejas estofadas con verduras",
-    type: "thermomix",
-    emoji: "🍲",
-    time: 45,
-    difficulty: "Fácil",
-    tags: ["legumbre", "cuchara", "sin gluten"],
-    baseServings: 4,
-    ingredients: [
-      { productId: "p-cebolla", name: "Cebolla", quantity: 1, unit: "ud", emoji: "🧅" },
-      { productId: "p-ajo", name: "Ajo", quantity: 2, unit: "ud", emoji: "🧄" },
-      { productId: "p-tomate", name: "Tomate maduro", quantity: 1, unit: "ud", emoji: "🍅" },
-      { productId: "p-aceite", name: "Aceite de oliva virgen extra", quantity: 30, unit: "ml", emoji: "🫒" },
-      { productId: "p-caldo", name: "Caldo de verduras", quantity: 600, unit: "ml", emoji: "🥫" },
-    ],
-    steps: [
-      { text: "Sofríe el ajo, la cebolla y el tomate 5 min, 120º, velocidad 1.", duration: 300, speed: "1", temp: "120º" },
-      { text: "Añade las lentejas y el caldo, cocina 25 min, 100º, giro a la izquierda velocidad cuchara.", duration: 1500, speed: "cuchara", temp: "100º" },
-    ],
-    ratingAvg: 4.5,
-    timesCooked: 0,
-    source: "cookidoo",
-  },
-  {
-    id: "r-import-quiche",
-    name: "Quiche de calabacín y bacon",
-    type: "thermomix",
-    emoji: "🥧",
-    time: 50,
-    difficulty: "Media",
-    tags: ["horno", "comfort food"],
-    baseServings: 6,
-    ingredients: [
-      { productId: "p-calabacin", name: "Calabacín", quantity: 2, unit: "ud", emoji: "🥒" },
-      { productId: "p-bacon", name: "Bacon en lonchas", quantity: 120, unit: "g", emoji: "🥓" },
-      { productId: "p-huevos", name: "Huevos L (docena)", quantity: 4, unit: "ud", emoji: "🥚" },
-      { productId: "p-nata", name: "Nata para cocinar", quantity: 200, unit: "ml", emoji: "🥛" },
-      { productId: "p-queso", name: "Queso rallado", quantity: 100, unit: "g", emoji: "🧀" },
-    ],
-    steps: [
-      { text: "Trocea el calabacín 4 seg, velocidad 4.", duration: 4, speed: "4" },
-      { text: "Mezcla huevos, nata y queso 15 seg, velocidad 3.", duration: 15, speed: "3" },
-      { text: "Vierte sobre la base de masa quebrada y hornea 35 min a 180º.", duration: 2100, temp: "180º (horno)" },
-    ],
-    ratingAvg: 4.6,
-    timesCooked: 0,
-    source: "cookidoo",
-  },
-];
-
 function emptyWeekPlan() {
   const plan = {};
   DAYS.forEach((day) => {
@@ -294,16 +241,6 @@ export const useStore = create(
           importedRecipes: state.importedRecipes.filter((r) => r.id !== recipeId),
           favoriteRecipeIds: state.favoriteRecipeIds.filter((id) => id !== recipeId),
         })),
-
-      importRecipeFromLink: (url) => {
-        const { importedRecipes } = get();
-        const alreadyImportedIds = importedRecipes.map((r) => r.id);
-        const next = IMPORTABLE_POOL.find((r) => !alreadyImportedIds.includes(r.id));
-        if (!next) return null;
-        const imported = { ...next, importedFrom: url || "https://cookidoo.es/recipes/demo" };
-        set({ importedRecipes: [...importedRecipes, imported] });
-        return imported;
-      },
 
       toggleFavorite: (recipeId) =>
         set((state) => ({
