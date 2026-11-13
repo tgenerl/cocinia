@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Camera, PencilLine, Plus, Trash2, Check, Loader2 } from "lucide-react";
 import Modal from "./Modal";
+import CameraCapture from "./CameraCapture";
 import { useStore } from "../store/useStore";
 import { PRODUCT_CATALOG, HANDWRITTEN_RECIPE_SAMPLE } from "../data/dummyData";
 
@@ -76,24 +77,39 @@ export default function RecipeFormModal({ open, onClose }) {
   }
 
   // --- Foto de receta ---
-  const [photoLoading, setPhotoLoading] = useState(false);
-  const [photoResult, setPhotoResult] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [photoAnalyzing, setPhotoAnalyzing] = useState(false);
 
-  function simulatePhotoScan() {
-    setPhotoLoading(true);
-    setPhotoResult(null);
+  function capturePhoto(file, url) {
+    setPhotoUrl(url);
+    setPhotoAnalyzing(true);
     setTimeout(() => {
-      setPhotoResult(HANDWRITTEN_RECIPE_SAMPLE);
-      setPhotoLoading(false);
+      const r = HANDWRITTEN_RECIPE_SAMPLE;
+      setName(r.name);
+      setType(r.type);
+      setTime(String(r.time));
+      setBaseServings(String(r.baseServings));
+      setTags(r.tags.join(", "));
+      setIngredients(
+        r.ingredients.map((ing) => ({
+          name: ing.name,
+          productId: ing.productId || "",
+          quantity: String(ing.quantity),
+          unit: ing.unit,
+        }))
+      );
+      setSteps(r.steps.map((s) => ({ text: s.text })));
+      setPhotoAnalyzing(false);
+      setPhotoUrl(null);
+      pushToast("Receta reconocida: revisa y edita antes de guardar", "info");
+      setTab("manual");
     }, 1200);
   }
 
-  function confirmPhoto() {
-    const recipe = addCustomRecipe({ ...photoResult, source: "foto" });
-    pushToast(`"${recipe.name}" reconocida y añadida a tus recetas`, "success");
-    setPhotoResult(null);
-    onClose();
+  function retakePhoto() {
+    setPhotoUrl(null);
   }
+
 
   return (
     <Modal open={open} onClose={onClose} title="Añadir receta" maxWidth="max-w-xl">
@@ -236,45 +252,24 @@ export default function RecipeFormModal({ open, onClose }) {
       {tab === "foto" && (
         <div className="space-y-3">
           <p className="text-sm text-stone-500">
-            Haz una foto a una receta escrita a mano o impresa y CocinIA la reconocerá automáticamente.
+            Haz una foto a una receta escrita a mano o impresa. CocinIA la reconocerá y podrás revisarla y editarla antes de
+            guardar.
           </p>
-          {!photoResult && (
-            <button onClick={simulatePhotoScan} disabled={photoLoading} className="btn-primary w-full">
-              {photoLoading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-              {photoLoading ? "Reconociendo receta…" : "Simular foto de receta"}
-            </button>
-          )}
-          {photoResult && (
-            <div className="space-y-3">
-              <div className="rounded-lg border border-stone-200 p-3">
-                <p className="text-sm font-bold text-stone-800">
-                  {photoResult.emoji} {photoResult.name}
-                </p>
-                <p className="mt-1 text-xs text-stone-500">
-                  {photoResult.time} min · {photoResult.baseServings} raciones
-                </p>
-                <p className="mt-2 text-xs font-semibold uppercase text-stone-400">Ingredientes detectados</p>
-                <ul className="mt-1 space-y-0.5 text-sm text-stone-600">
-                  {photoResult.ingredients.map((ing, i) => (
-                    <li key={i}>
-                      {ing.emoji} {ing.name} — {ing.quantity} {ing.unit}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-2 text-xs font-semibold uppercase text-stone-400">Pasos detectados</p>
-                <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-sm text-stone-600">
-                  {photoResult.steps.map((s, i) => (
-                    <li key={i}>{s.text}</li>
-                  ))}
-                </ol>
-              </div>
-              <button onClick={confirmPhoto} className="btn-primary w-full">
-                <Check size={16} /> Añadir a mis recetas
-              </button>
-            </div>
+          <CameraCapture
+            label="Hacer foto de la receta"
+            photoUrl={photoUrl}
+            onCapture={capturePhoto}
+            onRetake={retakePhoto}
+            disabled={photoAnalyzing}
+          />
+          {photoAnalyzing && (
+            <p className="flex items-center justify-center gap-2 py-2 text-sm text-stone-500">
+              <Loader2 size={16} className="animate-spin" /> Reconociendo receta…
+            </p>
           )}
         </div>
       )}
     </Modal>
   );
 }
+

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Camera, Receipt, ScanBarcode, Plus, Check, Loader2 } from "lucide-react";
+import { Receipt, Camera, ScanBarcode, Plus, Check, Trash2, Loader2 } from "lucide-react";
 import Modal from "./Modal";
+import CameraCapture from "./CameraCapture";
 import { useStore } from "../store/useStore";
 import {
   TICKET_SAMPLES,
@@ -17,6 +18,10 @@ function locationForCategory(category) {
   return "despensa";
 }
 
+function emptyLine() {
+  return { matchId: "", quantity: "", unit: "" };
+}
+
 const TABS = [
   { id: "tique", label: "Foto de tique", icon: Receipt },
   { id: "nevera", label: "Foto de nevera", icon: Camera },
@@ -31,56 +36,89 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
   const pushToast = useStore((s) => s.pushToast);
 
   // --- Tique ---
-  const [ticketLoading, setTicketLoading] = useState(false);
-  const [ticketResult, setTicketResult] = useState(null);
-  const [ticketChecked, setTicketChecked] = useState({});
+  const [ticketPhotoUrl, setTicketPhotoUrl] = useState(null);
+  const [ticketAnalyzing, setTicketAnalyzing] = useState(false);
+  const [ticketStore, setTicketStore] = useState(null);
+  const [ticketLines, setTicketLines] = useState(null);
 
-  function simulateTicketScan() {
-    setTicketLoading(true);
-    setTicketResult(null);
+  function captureTicketPhoto(file, url) {
+    setTicketPhotoUrl(url);
+    setTicketAnalyzing(true);
+    setTicketLines(null);
     setTimeout(() => {
       const sample = TICKET_SAMPLES[Math.floor(Math.random() * TICKET_SAMPLES.length)];
-      setTicketResult(sample);
-      setTicketChecked(Object.fromEntries(sample.rawLines.map((_, i) => [i, true])));
-      setTicketLoading(false);
-    }, 1100);
+      setTicketStore(sample.store);
+      setTicketLines(sample.rawLines.map((l) => ({ matchId: l.matchId, quantity: l.quantity, unit: l.unit })));
+      setTicketAnalyzing(false);
+    }, 1200);
+  }
+
+  function retakeTicketPhoto() {
+    setTicketPhotoUrl(null);
+    setTicketLines(null);
+    setTicketStore(null);
+  }
+
+  function updateTicketLine(idx, patch) {
+    setTicketLines(ticketLines.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
   }
 
   function confirmTicket() {
-    const lines = ticketResult.rawLines.filter((_, i) => ticketChecked[i]);
+    const lines = ticketLines.filter((l) => l.matchId && l.quantity !== "");
     const byLocation = {};
     lines.forEach((l) => {
       const catEntry = CATALOG_BY_ID[l.matchId];
       const loc = locationForCategory(catEntry.category);
       byLocation[loc] = byLocation[loc] || [];
-      byLocation[loc].push(l);
+      byLocation[loc].push({ ...l, quantity: Number(l.quantity) });
     });
     Object.entries(byLocation).forEach(([loc, items]) => addParsedItems(items, loc));
-    pushToast(`${lines.length} productos del tique de ${ticketResult.store} añadidos a tu despensa`, "success");
-    setTicketResult(null);
+    pushToast(`${lines.length} productos del tique de ${ticketStore} añadidos a tu despensa`, "success");
+    retakeTicketPhoto();
     onClose();
   }
 
-  // --- Nevera foto ---
-  const [fridgeLoading, setFridgeLoading] = useState(false);
-  const [fridgeResult, setFridgeResult] = useState(null);
-  const [fridgeChecked, setFridgeChecked] = useState({});
+  // --- Nevera / despensa foto ---
+  const [fridgePhotoUrl, setFridgePhotoUrl] = useState(null);
+  const [fridgeAnalyzing, setFridgeAnalyzing] = useState(false);
+  const [fridgeLines, setFridgeLines] = useState(null);
 
-  function simulateFridgeScan() {
-    setFridgeLoading(true);
-    setFridgeResult(null);
+  function captureFridgePhoto(file, url) {
+    setFridgePhotoUrl(url);
+    setFridgeAnalyzing(true);
+    setFridgeLines(null);
     setTimeout(() => {
-      setFridgeResult(FRIDGE_PHOTO_SAMPLE);
-      setFridgeChecked(Object.fromEntries(FRIDGE_PHOTO_SAMPLE.map((_, i) => [i, true])));
-      setFridgeLoading(false);
-    }, 1100);
+      setFridgeLines(
+        FRIDGE_PHOTO_SAMPLE.map((item) => ({
+          matchId: item.matchId,
+          quantity: item.quantity,
+          unit: item.unit,
+          location: locationForCategory(CATALOG_BY_ID[item.matchId].category),
+        }))
+      );
+      setFridgeAnalyzing(false);
+    }, 1200);
+  }
+
+  function retakeFridgePhoto() {
+    setFridgePhotoUrl(null);
+    setFridgeLines(null);
+  }
+
+  function updateFridgeLine(idx, patch) {
+    setFridgeLines(fridgeLines.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
   }
 
   function confirmFridge() {
-    const items = fridgeResult.filter((_, i) => fridgeChecked[i]);
-    addParsedItems(items, "nevera");
-    pushToast(`${items.length} productos detectados añadidos a la nevera`, "success");
-    setFridgeResult(null);
+    const lines = fridgeLines.filter((l) => l.matchId && l.quantity !== "");
+    const byLocation = {};
+    lines.forEach((l) => {
+      byLocation[l.location] = byLocation[l.location] || [];
+      byLocation[l.location].push({ ...l, quantity: Number(l.quantity) });
+    });
+    Object.entries(byLocation).forEach(([loc, items]) => addParsedItems(items, loc));
+    pushToast(`${lines.length} productos detectados añadidos a tu despensa`, "success");
+    retakeFridgePhoto();
     onClose();
   }
 
@@ -146,37 +184,39 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
       {tab === "tique" && (
         <div className="space-y-3">
           <p className="text-sm text-stone-500">
-            Simula hacer una foto a tu tique de compra. La IA reconocerá los productos y abreviaturas del súper automáticamente.
+            Haz una foto a tu tique de compra. La IA reconocerá los productos y podrás corregir lo que haga falta antes de
+            guardar.
           </p>
-          {!ticketResult && (
-            <button onClick={simulateTicketScan} disabled={ticketLoading} className="btn-primary w-full">
-              {ticketLoading ? <Loader2 size={16} className="animate-spin" /> : <Receipt size={16} />}
-              {ticketLoading ? "Analizando tique…" : "Simular foto de tique"}
-            </button>
+          <CameraCapture
+            label="Hacer foto de tique"
+            photoUrl={ticketPhotoUrl}
+            onCapture={captureTicketPhoto}
+            onRetake={retakeTicketPhoto}
+            disabled={ticketAnalyzing}
+          />
+          {ticketAnalyzing && (
+            <p className="flex items-center justify-center gap-2 py-2 text-sm text-stone-500">
+              <Loader2 size={16} className="animate-spin" /> Analizando tique…
+            </p>
           )}
-          {ticketResult && (
+          {ticketLines && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase text-stone-400">Tique de {ticketResult.store}</p>
-              {ticketResult.rawLines.map((l, i) => {
-                const p = CATALOG_BY_ID[l.matchId];
-                return (
-                  <label key={i} className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5">
-                    <span className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={!!ticketChecked[i]}
-                        onChange={(e) => setTicketChecked({ ...ticketChecked, [i]: e.target.checked })}
-                      />
-                      <span className="text-sm">
-                        <span className="text-stone-400 line-through">{l.raw}</span> → {p.emoji} {p.name}
-                      </span>
-                    </span>
-                    <span className="text-sm font-semibold text-stone-600">
-                      {l.quantity} {l.unit}
-                    </span>
-                  </label>
-                );
-              })}
+              <p className="text-xs font-semibold uppercase text-stone-400">Tique de {ticketStore} · revisa y edita</p>
+              {ticketLines.map((l, i) => (
+                <LineEditor
+                  key={i}
+                  line={l}
+                  onChange={(patch) => updateTicketLine(i, patch)}
+                  onRemove={() => setTicketLines(ticketLines.filter((_, idx) => idx !== i))}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setTicketLines([...ticketLines, emptyLine()])}
+                className="btn-ghost w-full text-sm"
+              >
+                <Plus size={14} /> Añadir línea
+              </button>
               <button onClick={confirmTicket} className="btn-primary w-full">
                 <Check size={16} /> Añadir a mi despensa
               </button>
@@ -188,34 +228,39 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
       {tab === "nevera" && (
         <div className="space-y-3">
           <p className="text-sm text-stone-500">
-            Simula una foto de tu nevera o despensa para detectar lo que ya tienes sin tique de compra.
+            Haz una foto de tu nevera o despensa para detectar lo que ya tienes, sin necesidad de tique de compra.
           </p>
-          {!fridgeResult && (
-            <button onClick={simulateFridgeScan} disabled={fridgeLoading} className="btn-primary w-full">
-              {fridgeLoading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-              {fridgeLoading ? "Detectando productos…" : "Simular foto de nevera"}
-            </button>
+          <CameraCapture
+            label="Hacer foto de nevera/despensa"
+            photoUrl={fridgePhotoUrl}
+            onCapture={captureFridgePhoto}
+            onRetake={retakeFridgePhoto}
+            disabled={fridgeAnalyzing}
+          />
+          {fridgeAnalyzing && (
+            <p className="flex items-center justify-center gap-2 py-2 text-sm text-stone-500">
+              <Loader2 size={16} className="animate-spin" /> Detectando productos…
+            </p>
           )}
-          {fridgeResult && (
+          {fridgeLines && (
             <div className="space-y-2">
-              {fridgeResult.map((item, i) => {
-                const p = CATALOG_BY_ID[item.matchId];
-                return (
-                  <label key={i} className="flex items-center justify-between rounded-lg border border-stone-200 p-2.5">
-                    <span className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={!!fridgeChecked[i]}
-                        onChange={(e) => setFridgeChecked({ ...fridgeChecked, [i]: e.target.checked })}
-                      />
-                      {p.emoji} {p.name}
-                    </span>
-                    <span className="text-sm font-semibold text-stone-600">
-                      {item.quantity} {item.unit}
-                    </span>
-                  </label>
-                );
-              })}
+              <p className="text-xs font-semibold uppercase text-stone-400">Detectado · revisa y edita</p>
+              {fridgeLines.map((l, i) => (
+                <LineEditor
+                  key={i}
+                  line={l}
+                  showLocation
+                  onChange={(patch) => updateFridgeLine(i, patch)}
+                  onRemove={() => setFridgeLines(fridgeLines.filter((_, idx) => idx !== i))}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setFridgeLines([...fridgeLines, { ...emptyLine(), location: "nevera" }])}
+                className="btn-ghost w-full text-sm"
+              >
+                <Plus size={14} /> Añadir línea
+              </button>
               <button onClick={confirmFridge} className="btn-primary w-full">
                 <Check size={16} /> Añadir a mi despensa
               </button>
@@ -314,3 +359,53 @@ export default function AddProductModal({ open, onClose, initialTab = "tique" })
     </Modal>
   );
 }
+
+function LineEditor({ line, onChange, onRemove, showLocation = false }) {
+  const current = CATALOG_BY_ID[line.matchId];
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-stone-200 p-2.5">
+      <span className="w-5 text-center">{current?.emoji || "❓"}</span>
+      <input
+        list="line-catalog-list"
+        className="input min-w-[9rem] flex-1"
+        placeholder="Producto"
+        defaultValue={current?.name || ""}
+        onChange={(e) => {
+          const match = PRODUCT_CATALOG.find((p) => p.name === e.target.value);
+          onChange({ matchId: match?.id || "" });
+        }}
+      />
+      <input
+        type="number"
+        min="0"
+        step="any"
+        className="input w-20"
+        placeholder="Cant."
+        value={line.quantity}
+        onChange={(e) => onChange({ quantity: e.target.value })}
+      />
+      <input
+        className="input w-16"
+        placeholder="Ud."
+        value={line.unit}
+        onChange={(e) => onChange({ unit: e.target.value })}
+      />
+      {showLocation && (
+        <select className="input w-28" value={line.location} onChange={(e) => onChange({ location: e.target.value })}>
+          <option value="nevera">Nevera</option>
+          <option value="congelador">Congelador</option>
+          <option value="despensa">Despensa</option>
+        </select>
+      )}
+      <button type="button" onClick={onRemove} className="rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-red-600">
+        <Trash2 size={16} />
+      </button>
+      <datalist id="line-catalog-list">
+        {PRODUCT_CATALOG.map((p) => (
+          <option key={p.id} value={p.name} />
+        ))}
+      </datalist>
+    </div>
+  );
+}
+
