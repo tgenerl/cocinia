@@ -1,6 +1,6 @@
 # CocinIA 🍳
 
-**Tu nevera y tu Thermomix hablan entre sí.** Prototipo funcional completo (React + Vite + Tailwind) con datos de demostración, sin backend: todo vive en `localStorage` del navegador.
+Prototipo funcional completo (React + Vite + Tailwind) con datos de demostración, sin backend: todo vive en `localStorage` del navegador.
 
 ## Funcionalidades incluidas
 

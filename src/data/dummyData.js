@@ -103,6 +103,33 @@ function ing(matchId, quantity, unit) {
   return { productId: matchId, name: p.name, quantity, unit: unit || p.unit, emoji: p.emoji };
 }
 
+// Simulación de "lector de recetas" (OCR): receta manuscrita reconocida a partir de una foto
+export const HANDWRITTEN_RECIPE_SAMPLE = {
+  name: "Croquetas de la abuela",
+  type: "normal",
+  emoji: "🥟",
+  time: 60,
+  difficulty: "Media",
+  tags: ["casero", "cuchara", "fritos"],
+  baseServings: 4,
+  ingredients: [
+    ing("p-leche", 500, "ml"),
+    ing("p-harina", 60, "g"),
+    ing("p-mantequilla", 50, "g"),
+    ing("p-pollo", 200, "g"),
+    ing("p-huevos", 2, "ud"),
+    ing("p-sal", 3, "g"),
+  ],
+  steps: [
+    { text: "Derrite la mantequilla en una sartén a fuego medio." },
+    { text: "Añade la harina y cocina 2 minutos sin dejar de remover." },
+    { text: "Vierte la leche poco a poco, sin dejar de remover, hasta que espese." },
+    { text: "Incorpora el pollo picado y la sal, cocina 5 minutos más." },
+    { text: "Deja enfriar la masa en la nevera al menos 2 horas." },
+    { text: "Forma las croquetas, pásalas por huevo y pan rallado, y fríe en aceite bien caliente." },
+  ],
+};
+
 export const RECIPES = [
   {
     id: "r-salmon-verduras",

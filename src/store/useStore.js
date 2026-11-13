@@ -268,6 +268,18 @@ export const useStore = create(
             : [...state.favoriteRecipeIds, recipeId],
         })),
 
+      // Añade una receta creada a mano o reconocida por foto de una receta escrita
+      addCustomRecipe: (draft) => {
+        const recipe = {
+          id: uid("r-custom"),
+          ratingAvg: null,
+          timesCooked: 0,
+          ...draft,
+        };
+        set((state) => ({ importedRecipes: [...state.importedRecipes, recipe] }));
+        return recipe;
+      },
+
       // ---------- HISTORIAL DE COCINA ----------
       cookingHistory: [],
       timesCookedOverrides: {},

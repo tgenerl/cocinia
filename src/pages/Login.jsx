@@ -26,7 +26,7 @@ export default function Login() {
             <ChefHat size={28} />
           </div>
           <h1 className="text-2xl font-extrabold text-stone-800">CocinIA</h1>
-          <p className="text-sm text-stone-500">Tu nevera y tu Thermomix hablan entre sí</p>
+          <p className="text-sm text-stone-500">Gestiona tu despensa y cocina con inteligencia</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card space-y-4">

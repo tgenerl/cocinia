@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Search, Zap, Link2, Heart, History, Loader2 } from "lucide-react";
+import { Search, Zap, Link2, Heart, History, Loader2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import RecipeCard from "../components/RecipeCard";
 import StarRating from "../components/StarRating";
+import RecipeFormModal from "../components/RecipeFormModal";
 import { classNames } from "../utils/helpers";
 
 const TABS = [
@@ -27,6 +28,7 @@ export default function Recetas() {
   const [search, setSearch] = useState("");
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
+  const [showRecipeForm, setShowRecipeForm] = useState(false);
 
   const allRecipes = getAllRecipes();
 
@@ -60,6 +62,9 @@ export default function Recetas() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold text-stone-800">Recetas</h1>
+        <button onClick={() => setShowRecipeForm(true)} className="btn-secondary whitespace-nowrap">
+          <Plus size={16} /> Añadir receta
+        </button>
       </div>
 
       <div className="card flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -75,6 +80,8 @@ export default function Recetas() {
           Importar
         </button>
       </div>
+
+      <RecipeFormModal open={showRecipeForm} onClose={() => setShowRecipeForm(false)} />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1">
