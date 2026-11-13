@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Home, Archive, BookOpen, CalendarDays, ShoppingCart, Settings, LogOut, Flame, ChefHat } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { classNames } from "../utils/helpers";
+import VoiceConsumeButton from "./VoiceConsumeButton";
 
 const NAV_ITEMS = [
   { to: "/inicio", label: "Inicio", icon: Home },
@@ -101,6 +102,8 @@ export default function Layout() {
           </NavLink>
         ))}
       </nav>
+
+      <VoiceConsumeButton />
     </div>
   );
 }

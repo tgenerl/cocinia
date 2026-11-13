@@ -174,6 +174,39 @@ export const useStore = create(
 
       removePantryItem: (id) => set((state) => ({ pantry: state.pantry.filter((p) => p.id !== id) })),
 
+      // Resta de la despensa lo que el usuario dice haberse comido/gastado (asistente de voz), FIFO por caducidad
+      consumeProduct: ({ matchId, quantity, consumedAll }) => {
+        const items = get()
+          .pantry.filter((p) => p.productId === matchId)
+          .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+        if (items.length === 0) return { found: false };
+
+        if (consumedAll) {
+          set((state) => ({ pantry: state.pantry.filter((p) => p.productId !== matchId) }));
+          return { found: true, removedAll: true };
+        }
+
+        let remaining = quantity;
+        const toRemove = [];
+        const toUpdate = {};
+        for (const item of items) {
+          if (remaining <= 0) break;
+          if (item.quantity <= remaining) {
+            remaining -= item.quantity;
+            toRemove.push(item.id);
+          } else {
+            toUpdate[item.id] = item.quantity - remaining;
+            remaining = 0;
+          }
+        }
+        set((state) => ({
+          pantry: state.pantry
+            .filter((p) => !toRemove.includes(p.id))
+            .map((p) => (toUpdate[p.id] != null ? { ...p, quantity: toUpdate[p.id] } : p)),
+        }));
+        return { found: true, removedAll: false };
+      },
+
       markPantryItemWasted: (id) => {
         get().removePantryItem(id);
         set((state) => ({
